@@ -232,6 +232,8 @@ class WebScraper:
             base_url = 'https://www.amazon.com.au'
         elif region == 'ae':  # UAE
             base_url = 'https://www.amazon.ae'
+        elif region == 'in':  # India
+            base_url = 'https://www.amazon.in'
         else:
             raise ValueError(f"Unsupported region: {region}")
 
