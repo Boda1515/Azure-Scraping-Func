@@ -1,4 +1,4 @@
-# DurableFunctionsOrchestrator1
+# Orchest
 import logging
 from azure.durable_functions import DurableOrchestrationContext, Orchestrator
 import azure.durable_functions as df
