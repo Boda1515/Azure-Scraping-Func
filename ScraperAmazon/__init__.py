@@ -35,68 +35,44 @@ class WebScraper:
         return user_agent
 
     async def fetch_page(self, session, url, max_retries=1, initial_delay=2):
-        user_agent = self.get_next_user_agent()
+        user_agent = self.get_next_user_agent()  # Store the updated user agent
         headers = {
             "User-Agent": user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5,ja;q=0.3",  # Added Japanese language support
+            "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
             "Upgrade-Insecure-Requests": "1"
         }
-
+        captcha_indicators = [
+            "captcha", "i am not a robot", "robot",
+            "prove you are human", "Enter the characters"
+        ]
         delay = initial_delay
-
         for attempt in range(max_retries):
             try:
                 async with session.get(url, headers=headers) as response:
+                    # First check the status code
                     if response.status == 403:
-                        logging.error("CAPTCHA detected via HTTP status 403.")
-                        return None
+                        print("CAPTCHA detected via HTTP status 403.")
+                        return None  # You can handle CAPTCHA solution here if needed
+                    html = await response.text()  # Directly fetch content
 
-                    # Try different encodings
-                    try:
-                        # First try to get the encoding from the response headers
-                        content_type = response.headers.get('Content-Type', '')
-                        if 'charset=' in content_type:
-                            encoding = content_type.split(
-                                'charset=')[-1].strip()
-                        else:
-                            # If no encoding in headers, try common Japanese encodings
-                            encodings_to_try = [
-                                'utf-8', 'shift_jis', 'euc-jp', 'iso-2022-jp']
-                            content = await response.read()
+                    if any(indicator in str(response.url).lower() for indicator in captcha_indicators):
+                        print("CAPTCHA detected!")
 
-                            for enc in encodings_to_try:
-                                try:
-                                    html = content.decode(enc)
-                                    logging.info(
-                                        f"Successfully decoded with {enc}")
-                                    return html
-                                except UnicodeDecodeError:
-                                    continue
-
-                            # If all encodings fail, try with 'ignore' parameter
-                            logging.warning(
-                                "Falling back to UTF-8 with ignore parameter")
-                            html = content.decode('utf-8', errors='ignore')
-                            return html
-
-                    except Exception as e:
-                        logging.error(f"Error decoding content: {str(e)}")
-                        # Fall back to raw text with ignore parameter
-                        html = await response.text(errors='ignore')
-                        return html
+                    logging.info(f"Successfully fetched page from {url[-4:]}")
+                    return html  # Return the fetched HTML
 
             except asyncio.TimeoutError:
                 logging.error(
                     f"Timeout error occurred while fetching {url}. Retrying...")
                 await asyncio.sleep(delay)
-                delay *= 1.5
+                delay *= 1.5  # Exponential backoff
             except aiohttp.ClientError as e:
                 logging.error(f"Error fetching {url}: {str(e)}")
                 await asyncio.sleep(delay)
-                delay *= 1.5
+                delay *= 1.5  # Exponential backoff
 
         logging.error(f"Max retries reached for {url}")
         return None
