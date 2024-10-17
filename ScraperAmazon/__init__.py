@@ -291,6 +291,9 @@ async def main(input: dict) -> dict:
     region = input["region"]
     max_pages = input["max_pages"]
 
+    # Convert max_pages to int if it's a string
+    max_pages = int(max_pages) if isinstance(max_pages, str) else max_pages
+
     scraper = WebScraper()
 
     logging.info(f'Amazon_{region}_product_data function processing...')
