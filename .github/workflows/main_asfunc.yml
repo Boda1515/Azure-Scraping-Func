@@ -71,3 +71,5 @@ jobs:
           scm-do-build-during-deployment: true
           enable-oryx-build: true
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_862067B592794F8A8536F0B28D34495C }}
+
+          
