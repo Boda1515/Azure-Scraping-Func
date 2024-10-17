@@ -56,7 +56,11 @@ class WebScraper:
                     if response.status == 403:
                         print("CAPTCHA detected via HTTP status 403.")
                         return None  # You can handle CAPTCHA solution here if needed
-                    html = await response.text()  # Directly fetch content
+                        # Fetch content and handle encoding
+
+                    response_encoding = response.charset or 'utf-8'
+                    html = await response.text(encoding=response_encoding)
+                    # html = await response.text()  # Directly fetch content
 
                     if any(indicator in str(response.url).lower() for indicator in captcha_indicators):
                         print("CAPTCHA detected!")
@@ -93,7 +97,7 @@ class WebScraper:
         html = await self.fetch_page(session, product_url)
         if not html:
             return None
-        soup = BeautifulSoup(html, 'html.parser')
+        soup = BeautifulSoup(html, 'html.parser', from_encoding='utf-8')
 
         # Extracting Price
         price_selector_1 = "#corePriceDisplay_desktop_feature_div .a-price-whole"
