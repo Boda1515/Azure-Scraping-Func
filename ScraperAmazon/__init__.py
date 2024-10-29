@@ -53,16 +53,22 @@ class WebScraper:
                     if response.status == 403:
                         print("CAPTCHA detected via HTTP status 403.")
                         return None
-                    # Get the raw bytes instead of text
+
                     raw_html = await response.read()
 
-                    # Try to get encoding from headers
-                    encoding = response.headers.get(
-                        'Content-Type', '').split('charset=')[-1]
-                    if not encoding:
-                        encoding = 'utf-8'  # Fallback to UTF-8 if no encoding is found
+                    # Get the encoding from the Content-Type header
+                    content_type = response.headers.get('Content-Type', '')
+                    encoding = 'utf-8'  # Default fallback
+                    if 'charset=' in content_type:
+                        encoding = content_type.split('charset=')[-1]
 
-                    # Decode using the correct encoding
+                    # Handle cases where the encoding might not be known
+                    # Add more valid encodings as needed
+                    if encoding not in ['utf-8', 'ascii', 'utf-16', 'ISO-8859-1']:
+                        logging.warning(
+                            f"Unknown encoding detected: {encoding}. Defaulting to 'utf-8'.")
+                        encoding = 'utf-8'
+
                     html = raw_html.decode(encoding)
 
                     if any(indicator in str(response.url).lower() for indicator in captcha_indicators):
@@ -83,6 +89,7 @@ class WebScraper:
 
         logging.error(f"Max retries reached for {url}")
         return None
+
 # This comments because it was not handle japanies regions.
     # async def fetch_page(self, session, url, max_retries=1, initial_delay=2):
     #     user_agent = self.get_next_user_agent()  # Store the updated user agent
