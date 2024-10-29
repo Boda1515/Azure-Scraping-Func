@@ -34,7 +34,7 @@ class WebScraper:
             self.current_user_agent_index + 1) % len(self.user_agents)
         return user_agent
 
-    async def fetch_page(self, session, url, max_retries=1, initial_delay=2):
+    async def fetch_page(self, session, url, max_retries=2, initial_delay=2):
         user_agent = self.get_next_user_agent()
         headers = {
             "User-Agent": user_agent,
@@ -51,7 +51,8 @@ class WebScraper:
             try:
                 async with session.get(url, headers=headers) as response:
                     if response.status == 403:
-                        print("CAPTCHA detected via HTTP status 403.")
+                        logging.warning(
+                            "CAPTCHA detected via HTTP status 403.")
                         return None
 
                     raw_html = await response.read()
@@ -63,16 +64,23 @@ class WebScraper:
                         encoding = content_type.split('charset=')[-1]
 
                     # Handle cases where the encoding might not be known
-                    # Add more valid encodings as needed
-                    if encoding not in ['utf-8', 'ascii', 'utf-16', 'ISO-8859-1']:
+                    if encoding not in ['utf-8', 'ascii', 'latin-1', 'utf-16']:
                         logging.warning(
-                            f"Unknown encoding detected: {encoding}. Defaulting to 'utf-8'.")
-                        encoding = 'utf-8'
-
-                    html = raw_html.decode(encoding)
+                            f"Unknown encoding detected: {encoding}. Trying other encodings.")
+                        try:
+                            html = raw_html.decode('utf-8')
+                        except UnicodeDecodeError:
+                            try:
+                                html = raw_html.decode('latin-1')
+                            except UnicodeDecodeError:
+                                html = raw_html.decode(
+                                    'utf-16', errors='replace')
+                    else:
+                        html = raw_html.decode(encoding)
 
                     if any(indicator in str(response.url).lower() for indicator in captcha_indicators):
-                        print("CAPTCHA detected!")
+                        logging.warning("CAPTCHA detected!")
+                        return None
 
                     logging.info(f"Successfully fetched page from {url[-4:]}")
                     return html
